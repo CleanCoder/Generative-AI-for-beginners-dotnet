@@ -23,5 +23,27 @@ namespace MEAI.Controllers
 
             return Ok(sb.ToString());
         }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh(CancellationToken cancellationToken = default)
+        {
+            await searchService.Refresh(cancellationToken);
+
+            return Ok();
+        }
+
+        /// <summary>
+        /// Switch AI Embedding provider
+        /// </summary>
+        /// <param name="providerName" example="Gemini, AzureAI, Ollama"></param>
+        /// <param name="cancellationToken"></param>
+        /// <response code="200"></response>
+        [HttpPost("switch/{providerName}")]
+        public async Task<IActionResult> SwitchProvider([FromRoute] string providerName, CancellationToken cancellationToken = default)
+        {
+           var result = await searchService.SwitchProvider(providerName, cancellationToken);
+
+            return Ok(result);
+        }
     }
 }

@@ -7,6 +7,8 @@ namespace MEAI.Services
         public Task<bool> Refresh(CancellationToken cancellationToken = default);
 
         public Task<IEnumerable<MatchedMovie<T>>> Search(string query, SearchOptions searchOption, CancellationToken cancellationToken = default);
+
+        public Task<bool> SwitchProvider(string providerName, CancellationToken cancellationToken = default);
     }
 
     public class MatchedMovie<T> : Movie<T>

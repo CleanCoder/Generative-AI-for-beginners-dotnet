@@ -12,6 +12,7 @@ using Microsoft.Extensions.AI;
 using MEAI.Services;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Mscc.GenerativeAI.Microsoft;
+using MEAI.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,18 +28,11 @@ builder.Services.AddOpenApi();
 
 // Embedding services
 builder.Services.TryAddSingleton<IVectorStore, InMemoryVectorStore>();
-//builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>, AzureAIInferenceEmbeddingGenerator>(serviceProvider =>
-//{
-//    var url = builder.Configuration.GetValue<string>("LLMConfig:Host");
-//    var token = builder.Configuration.GetValue<string>("LLMConfig:Token");
-
-//    var client = new EmbeddingsClient(new Uri(url), new AzureKeyCredential(token), new AzureAIInferenceClientOptions());
-
-//    return new AzureAIInferenceEmbeddingGenerator(client);
-
-//});
 builder.Services.AddKeyedSingleton<IEmbeddingGenerator<string, Embedding<float>>, AzureAIInferenceEmbeddingGenerator>("AzureAI", (serviceProvider, key) =>
 {
+    var logger = serviceProvider.GetRequiredService<ILogger<AzureAIInferenceEmbeddingGenerator>>();
+    logger.LogInformation("Creating AzureAIInferenceEmbeddingGenerator");
+
     var url = builder.Configuration.GetValue<string>("AzureAI:Host");
     var token = builder.Configuration.GetValue<string>("AzureAI:Token");
 
@@ -48,6 +42,9 @@ builder.Services.AddKeyedSingleton<IEmbeddingGenerator<string, Embedding<float>>
 });
 builder.Services.AddKeyedSingleton<IEmbeddingGenerator<string, Embedding<float>>, OllamaEmbeddingGenerator>("Ollama", (serviceProvider, key) =>
 {
+    var logger = serviceProvider.GetRequiredService<ILogger<OllamaEmbeddingGenerator>>();
+    logger.LogInformation("Creating OllamaEmbeddingGenerator");
+
     var url = builder.Configuration.GetValue<string>("Ollama:Host");
     var model = builder.Configuration.GetValue<string>("Ollama:Model");
 
@@ -55,6 +52,9 @@ builder.Services.AddKeyedSingleton<IEmbeddingGenerator<string, Embedding<float>>
 });
 builder.Services.AddKeyedSingleton<IEmbeddingGenerator<string, Embedding<float>>, GeminiEmbeddingGenerator>("Gemini", (serviceProvider, key) =>
 {
+    var logger = serviceProvider.GetRequiredService<ILogger<GeminiEmbeddingGenerator>>();
+    logger.LogInformation("Creating GeminiEmbeddingGenerator");
+
     var token = builder.Configuration.GetValue<string>("Gemini:Token");
     var model = builder.Configuration.GetValue<string>("Gemini:Model");
 
@@ -62,7 +62,13 @@ builder.Services.AddKeyedSingleton<IEmbeddingGenerator<string, Embedding<float>>
 });
 
 
-builder.Services.AddSingleton<IMovieSearchService<int>, AIMovieSearchService<int>>();
+builder.Services.AddScoped<IMovieSearchService<int>, AIMovieSearchService<int>>();
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+    c.IncludeXmlComments(typeof(MoviesController).Assembly);
+});
 
 
 var app = builder.Build();
@@ -71,9 +77,10 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/openapi/v1.json", "v1");
+        options.SwaggerEndpoint("v1/swagger.json", "My API V1");
     });
 }
 
